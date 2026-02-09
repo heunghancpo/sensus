@@ -1,269 +1,276 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import gsap from "gsap";
-
-// --- 데이터 정의 (동일) ---
-const COFFEE_DATA = [
-  {
-    name: "Esmeralda Geisha",
-    variety: "Panama Geisha",
-    notes: ["Jasmine", "Bergamot", "Honey"],
-    desc: "세계 최고의 커피. 재스민의 우아한 꽃향기와 베르가못의 산미.",
-    color: 0x6f4e37,
-  },
-  {
-    name: "Pink Bourbon",
-    variety: "Colombia Huila",
-    notes: ["Grapefruit", "Melon", "Floral"],
-    desc: "핑크 자몽의 상큼함과 멜론의 부드러운 단맛.",
-    color: 0x8d6e63,
-  },
-  {
-    name: "Kenya AA Top",
-    variety: "SL28 / SL34",
-    notes: ["Blackcurrant", "Tomato", "Winey"],
-    desc: "강렬한 바디감과 와인 같은 풍미.",
-    color: 0x3e2723,
-  },
-  {
-    name: "Blue Mountain",
-    variety: "Jamaica No.1",
-    notes: ["Chocolate", "Spices", "Smooth"],
-    desc: "영국 왕실이 사랑한 부드러운 밸런스.",
-    color: 0x5d4037,
-  },
-];
+import { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import gsap from 'gsap';
+import { coffeeDB } from '@/data';
+import { CoffeeData } from '@/types';
+import { useStore } from '@/store/useStore'; // Store import
 
 export default function ThreeHero() {
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // UI Refs
+  const introTextRef = useRef<HTMLDivElement>(null);
   const detailCardRef = useRef<HTMLDivElement>(null);
   
-  const [selectedCoffee, setSelectedCoffee] = useState(COFFEE_DATA[0]);
+  // State
+  const [selectedCoffee, setSelectedCoffee] = useState<CoffeeData>(coffeeDB[0]);
+
+  const { language } = useStore(); // 언어 상태 가져오기
 
   // Three.js Refs
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const cupsRef = useRef<any[]>([]);
-  const stateRef = useRef<"INTRO" | "ANIMATING" | "LINEAR" | "DETAIL">("INTRO");
-  const trayGroupRef = useRef<THREE.Group | null>(null);
-  const rotateTweenRef = useRef<gsap.core.Tween | null>(null);
+  const sceneRef = useRef<THREE.Scene>(null!);
+  const cameraRef = useRef<THREE.PerspectiveCamera>(null!);
+  const rendererRef = useRef<THREE.WebGLRenderer>(null!);
+  const cupsRef = useRef<{ mesh: THREE.Group; data: CoffeeData; targetLineX: number }[]>([]);
+  const trayRef = useRef<THREE.Group>(null!);
+  
+  const stateRef = useRef<'INTRO' | 'ANIMATING' | 'LINEAR' | 'DETAIL'>('INTRO');
+  const rotateTweenRef = useRef<gsap.core.Tween>(null!);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!containerRef.current) return;
 
     // 1. Scene Setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x050505);
-    scene.fog = new THREE.Fog(0x050505, 10, 60); // Fog 거리 조정
+    scene.fog = new THREE.Fog(0x050505, 10, 60);
     sceneRef.current = scene;
 
-    // 카메라 FOV 살짝 줄여서 제품 집중도 향상
-    const camera = new THREE.PerspectiveCamera(35, canvasRef.current.clientWidth / canvasRef.current.clientHeight, 0.1, 100);
+    const width = containerRef.current.clientWidth;
+    const height = containerRef.current.clientHeight;
+
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 12, 8); // Intro Position
+    camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(canvasRef.current.clientWidth, canvasRef.current.clientHeight); // 부모 크기 따름
+    renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    canvasRef.current.appendChild(renderer.domElement);
+    containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 2. Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+    // 2. Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
     scene.add(ambientLight);
 
-    const mainSpot = new THREE.SpotLight(0xffeebb, 2);
-    mainSpot.position.set(5, 10, 5);
-    mainSpot.angle = 0.5;
-    mainSpot.penumbra = 0.5;
+    const mainSpot = new THREE.SpotLight(0xffeebb, 1.5);
+    mainSpot.position.set(0, 15, 5);
+    mainSpot.angle = 0.4;
+    mainSpot.penumbra = 0.3;
     mainSpot.castShadow = true;
     scene.add(mainSpot);
 
-    const rimLight = new THREE.SpotLight(0x4455ff, 1.5);
-    rimLight.position.set(-5, 5, -5);
+    const rimLight = new THREE.SpotLight(0x4455ff, 1);
+    rimLight.position.set(0, 5, -10);
     rimLight.lookAt(0, 0, 0);
     scene.add(rimLight);
 
     // 3. Objects
     const trayGroup = new THREE.Group();
     scene.add(trayGroup);
-    trayGroupRef.current = trayGroup;
+    trayRef.current = trayGroup;
 
     // Tray
-    const trayGeo = new THREE.CylinderGeometry(4.5, 4.2, 0.2, 64);
-    const trayMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.2, metalness: 0.5 });
+    const trayGeo = new THREE.CylinderGeometry(4.5, 4.2, 0.3, 64);
+    const trayMat = new THREE.MeshStandardMaterial({ color: 0x221100, roughness: 0.3, metalness: 0.1 });
     const tray = new THREE.Mesh(trayGeo, trayMat);
     tray.receiveShadow = true;
     trayGroup.add(tray);
 
-    // Cups
+    // Cups (8 types)
     const cups: any[] = [];
-    COFFEE_DATA.forEach((data, i) => {
-      const cupGroup = new THREE.Group();
-      // ... 컵 생성 로직 동일 ...
-      const cupGeo = new THREE.CylinderGeometry(0.55, 0.5, 1.1, 32);
-      const cupMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, metalness: 0.1 });
-      const cup = new THREE.Mesh(cupGeo, cupMat);
-      cup.position.y = 0.55;
-      cup.castShadow = true;
-      cup.receiveShadow = true;
+    const totalCups = coffeeDB.length;
+    const spacing = 2.0; // 컵 사이 간격
 
-      const liquidGeo = new THREE.CircleGeometry(0.48, 32);
-      const liquidMat = new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.1 });
-      const liquid = new THREE.Mesh(liquidGeo, liquidMat);
-      liquid.rotation.x = -Math.PI / 2;
-      liquid.position.y = 1.0;
-      cupGroup.add(cup, liquid);
+    coffeeDB.forEach((data, i) => {
+        const cupGroup = new THREE.Group();
 
-      const angle = (i / 4) * Math.PI * 2;
-      const radius = 2.5;
-      cupGroup.position.set(Math.cos(angle) * radius, 0.15, Math.sin(angle) * radius);
-      trayGroup.add(cupGroup);
+        // Body
+        const cupGeo = new THREE.CylinderGeometry(0.55, 0.5, 1.1, 32);
+        const cupMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.1 });
+        const cup = new THREE.Mesh(cupGeo, cupMat);
+        cup.position.y = 0.55;
+        cup.castShadow = true;
+        cup.receiveShadow = true;
 
-      cups.push({
-        mesh: cupGroup,
-        data: data,
-        originalY: 0.15,
-        targetLineX: (i - 1.5) * 1.8, // 간격 살짝 좁힘
-      });
+        // Liquid
+        const liquidGeo = new THREE.CircleGeometry(0.48, 32);
+        const liquidMat = new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.2 });
+        const liquid = new THREE.Mesh(liquidGeo, liquidMat);
+        liquid.rotation.x = -Math.PI / 2;
+        liquid.position.y = 1.0;
+
+        cupGroup.add(cup, liquid);
+
+        // Circular Layout
+        const angle = (i / totalCups) * Math.PI * 2;
+        const radius = 2.5;
+        cupGroup.position.set(Math.cos(angle) * radius, 0.15, Math.sin(angle) * radius);
+        
+        trayGroup.add(cupGroup);
+
+        cups.push({
+            mesh: cupGroup,
+            data: data,
+            // Linear Layout target position (Center aligned)
+            targetLineX: (i - (totalCups - 1) / 2) * spacing
+        });
     });
     cupsRef.current = cups;
 
-    // 4. Initial Camera Position (약간 더 멀리서 전체 조망)
-    camera.position.set(0, 8, 12); 
-    camera.lookAt(0, 0, 0);
-
-    // Rotation Animation
-    rotateTweenRef.current = gsap.to(trayGroup.rotation, {
-      y: Math.PI * 2,
-      duration: 20,
-      repeat: -1,
-      ease: "none",
+    // 4. Intro Animation
+    rotateTweenRef.current = gsap.to(trayGroup.rotation, { 
+        y: Math.PI * 2, 
+        duration: 20, 
+        repeat: -1, 
+        ease: "none" 
     });
 
-    gsap.from(cups.map((c) => c.mesh.scale), {
-      x: 0, y: 0, z: 0,
-      duration: 1,
-      stagger: 0.1,
-      ease: "elastic.out(1, 0.5)",
-      delay: 0.2,
+    gsap.from(cups.map(c => c.mesh.scale), { 
+        x: 0, y: 0, z: 0, 
+        duration: 0.8, 
+        stagger: 0.1, 
+        ease: "back.out(1.5)", 
+        delay: 0.5 
     });
+
+    // 5. Event Listeners & Loop
+    const handleResize = () => {
+        if (!containerRef.current) return;
+        const w = containerRef.current.clientWidth;
+        const h = containerRef.current.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+    };
 
     const animate = () => {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
     };
     animate();
 
-    const handleResize = () => {
-      if (!canvasRef.current) return;
-      camera.aspect = canvasRef.current.clientWidth / canvasRef.current.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(canvasRef.current.clientWidth, canvasRef.current.clientHeight);
-    };
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
-      if (canvasRef.current && renderer.domElement) {
-        canvasRef.current.removeChild(renderer.domElement);
-      }
-      renderer.dispose();
+        window.removeEventListener('resize', handleResize);
+        if (containerRef.current && renderer.domElement) {
+            containerRef.current.removeChild(renderer.domElement);
+        }
+        renderer.dispose();
     };
   }, []);
 
-  // --- Interaction Logic (간소화) ---
-  
-  const transitionToLinear = () => {
-    if (!sceneRef.current || !cameraRef.current || !trayGroupRef.current) return;
-    stateRef.current = "ANIMATING";
-    
-    // Stop Rotation
-    if (rotateTweenRef.current) rotateTweenRef.current.kill();
-    gsap.to(trayGroupRef.current.position, { y: -5, duration: 1, ease: "power2.in" });
+  // --- Interaction Logic ---
 
-    // Cups Re-arrange
+  const transitionToLinear = () => {
+    stateRef.current = 'ANIMATING';
+    
+    // Hide Intro Text
+    if (introTextRef.current) {
+        gsap.to(introTextRef.current, { opacity: 0, duration: 0.5, onComplete: () => {
+            if(introTextRef.current) introTextRef.current.style.display = 'none';
+        }});
+    }
+
+    // Stop Rotation & Move Tray
+    if (rotateTweenRef.current) rotateTweenRef.current.kill();
+    gsap.to(trayRef.current.position, { y: -5, duration: 1.5, ease: "power2.in" });
+
+    // Rearrange Cups
     cupsRef.current.forEach((item) => {
-        sceneRef.current?.attach(item.mesh);
-        gsap.to(item.mesh.position, { x: item.targetLineX, y: 0, z: 0, duration: 1.2, ease: "power3.inOut" });
+        sceneRef.current.attach(item.mesh); // Parent change to Scene
+        
+        gsap.to(item.mesh.position, {
+            x: item.targetLineX,
+            y: 0,
+            z: 0,
+            duration: 1.5,
+            ease: "power3.inOut"
+        });
         gsap.to(item.mesh.rotation, { y: 0, duration: 1 });
     });
 
-    // Camera Move (정면 뷰)
+    // Camera Move (Z축 거리를 넉넉하게 16으로 잡음)
     gsap.to(cameraRef.current.position, {
-        x: 0, y: 2, z: 6, // 높이 낮춤
-        duration: 1.2,
+        x: 0, y: 3, z: 16, 
+        duration: 1.5,
         ease: "power2.inOut",
-        onUpdate: () => cameraRef.current?.lookAt(0,0.5,0), // 살짝 위를 보게
-        onComplete: () => { stateRef.current = "LINEAR"; }
+        onUpdate: () => cameraRef.current.lookAt(0, 0, 0),
+        onComplete: () => { stateRef.current = 'LINEAR'; }
     });
   };
 
   const showDetail = (index: number) => {
-    stateRef.current = "DETAIL";
-    const selectedCup = cupsRef.current[index];
-    setSelectedCoffee(selectedCup.data);
+      stateRef.current = 'DETAIL';
+      const selectedCup = cupsRef.current[index];
+      setSelectedCoffee(selectedCup.data);
 
-    if (detailCardRef.current) {
-        detailCardRef.current.style.visibility = 'visible';
-        gsap.to(detailCardRef.current, { opacity: 1, x: 0, duration: 0.5 });
-    }
+      if (detailCardRef.current) {
+          gsap.to(detailCardRef.current, { autoAlpha: 1, x: 0, duration: 0.5 });
+      }
 
-    if (cameraRef.current) {
-        gsap.to(cameraRef.current.position, {
-            x: selectedCup.mesh.position.x, y: 1.5, z: 3,
-            duration: 1, ease: "power3.out"
-        });
-    }
+      // Camera Focus on Cup
+      gsap.to(cameraRef.current.position, {
+          x: selectedCup.mesh.position.x, 
+          y: 2, 
+          z: 5, // Zoom In
+          duration: 1.2,
+          ease: "power3.out"
+      });
 
-    cupsRef.current.forEach((c, i) => {
-        if (i !== index) {
-            gsap.to(c.mesh.position, { z: -2, opacity: 0.3, duration: 0.5 });
-            gsap.to(c.mesh.children[0].material, { opacity: 0.3, transparent: true, duration: 0.5});
-        }
-    });
+      // Blur others
+      cupsRef.current.forEach((c, i) => {
+          if (i !== index) {
+              gsap.to(c.mesh.position, { z: -3, duration: 1 });
+          } else {
+              gsap.to(c.mesh.position, { z: 1, duration: 1 });
+              gsap.to(c.mesh.rotation, { y: -0.2, duration: 1 });
+          }
+      });
   };
 
-  const returnToLine = () => {
-    stateRef.current = "ANIMATING";
-    if (detailCardRef.current) {
-        gsap.to(detailCardRef.current, { opacity: 0, x: 20, duration: 0.3, onComplete: () => {
-             if(detailCardRef.current) detailCardRef.current.style.visibility = 'hidden';
-        }});
-    }
-    cupsRef.current.forEach(c => {
-        gsap.to(c.mesh.position, { x: c.targetLineX, y: 0, z: 0, duration: 0.8, ease: "power2.out" });
-        gsap.to(c.mesh.children[0].material, { opacity: 1, transparent: false, duration: 0.5});
-    });
-    if (cameraRef.current) {
-        gsap.to(cameraRef.current.position, {
-            x: 0, y: 2, z: 6,
-            duration: 0.8, ease: "power2.inOut",
-            onComplete: () => { stateRef.current = "LINEAR"; }
-        });
-    }
+  const handleBack = () => {
+      stateRef.current = 'ANIMATING';
+      if (detailCardRef.current) {
+          gsap.to(detailCardRef.current, { autoAlpha: 0, x: 50, duration: 0.3 });
+      }
+
+      cupsRef.current.forEach(c => {
+          gsap.to(c.mesh.position, { x: c.targetLineX, y: 0, z: 0, duration: 1, ease: "power2.out" });
+          gsap.to(c.mesh.rotation, { y: 0, duration: 1 });
+      });
+
+      // Camera Reset
+      gsap.to(cameraRef.current.position, {
+          x: 0, y: 3, z: 16,
+          duration: 1,
+          ease: "power2.inOut",
+          onComplete: () => { stateRef.current = 'LINEAR'; }
+      });
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    // 3D 캔버스 내 클릭만 처리
-    e.preventDefault(); 
-    
-    if (stateRef.current === "INTRO") {
+  // --- Pointer Events (More reliable than onClick) ---
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Ignore UI clicks
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.detail-card')) return;
+
+    if (stateRef.current === 'INTRO') {
         transitionToLinear();
-    } else if (stateRef.current === "LINEAR") {
-        if (!cameraRef.current || !canvasRef.current) return;
-        
-        // Raycaster 좌표 계산 (부모 요소 기준 상대 좌표 사용)
-        const rect = canvasRef.current.getBoundingClientRect();
+    } else if (stateRef.current === 'LINEAR') {
+        const rect = containerRef.current!.getBoundingClientRect();
+        // Mouse coordinates relative to canvas container
         const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(new THREE.Vector2(x, y), cameraRef.current);
-
+        
+        // Raycast against cups
         const cupMeshes = cupsRef.current.map(c => c.mesh);
         const intersects = raycaster.intersectObjects(cupMeshes, true);
 
@@ -276,25 +283,26 @@ export default function ThreeHero() {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (stateRef.current !== "LINEAR" || !cameraRef.current || !canvasRef.current) {
-        if(canvasRef.current) canvasRef.current.style.cursor = 'default';
+    if (stateRef.current !== 'LINEAR') {
+        document.body.style.cursor = 'default';
         return;
     }
 
-    const rect = canvasRef.current.getBoundingClientRect();
+    const rect = containerRef.current!.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(x, y), cameraRef.current);
-    const intersects = raycaster.intersectObjects(cupsRef.current.map(c => c.mesh), true);
+    const cupMeshes = cupsRef.current.map(c => c.mesh);
+    const intersects = raycaster.intersectObjects(cupMeshes, true);
 
     if (intersects.length > 0) {
-        canvasRef.current.style.cursor = 'pointer';
+        document.body.style.cursor = 'pointer';
         const parent = intersects[0].object.parent;
-        gsap.to(parent.position, { y: 0.3, duration: 0.3 });
+        if(parent) gsap.to(parent.position, { y: 0.3, duration: 0.3 });
     } else {
-        canvasRef.current.style.cursor = 'default';
+        document.body.style.cursor = 'default';
         cupsRef.current.forEach(c => {
              if (c.mesh.position.y !== 0) gsap.to(c.mesh.position, { y: 0, duration: 0.3 });
         });
@@ -302,41 +310,53 @@ export default function ThreeHero() {
   };
 
   return (
-    // 중요: h-screen 제거 -> absolute inset-0으로 부모 크기 채움
     <div className="absolute inset-0 w-full h-full bg-[#050505] overflow-hidden">
-      
-      {/* 3D Canvas Container */}
-      {/* 중요: pointer-events-auto 추가 */}
+      {/* 3D Container */}
       <div 
-        ref={canvasRef} 
+        ref={containerRef} 
         className="absolute inset-0 z-0 pointer-events-auto"
-        onClick={handleClick}
+        onPointerDown={handlePointerDown} 
         onMouseMove={handleMouseMove}
       />
-
-      {/* Intro Text (클릭하면 사라짐) */}
-      <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-500 ${stateRef.current !== 'INTRO' ? 'opacity-0' : 'opacity-100'}`}>
-         {/* ... (기존 텍스트 생략, 필요시 추가) ... */}
+      
+      {/* Intro Text Layer */}
+      <div ref={introTextRef} className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 text-center select-none">
+        <h1 className="font-serif text-5xl md:text-7xl text-[#d4af37] tracking-widest mb-4 italic">THE ATELIER</h1>
+        <p className="text-gray-400 tracking-[0.3em] uppercase text-xs md:text-sm mb-12">
+          {language === 'KO' ? 'Premium Specialty Coffee Collection' : 'プレミアムスペシャルティコーヒーコレクション'}
+        </p>
+        <div className="border border-[#d4af37]/50 text-[#d4af37] px-8 py-3 rounded-full text-[10px] md:text-xs uppercase tracking-wider animate-pulse">
+          {language === 'KO' ? 'Click Anywhere to Explore' : '画面をクリックして探索'}
+        </div>
       </div>
 
-      {/* Detail Card (우측 상단 고정) */}
+      {/* Detail Card Layer */}
       <div 
-        ref={detailCardRef}
-        className="absolute top-10 right-10 w-[280px] bg-black/80 backdrop-blur-md border border-[#d4af37]/30 p-6 text-white opacity-0 invisible z-20 pointer-events-auto rounded-sm"
+        ref={detailCardRef} 
+        className="detail-card absolute top-1/2 right-[5%] -translate-y-1/2 w-[320px] bg-[#141414]/90 backdrop-blur-md border-l-[3px] border-[#d4af37] p-8 text-white z-20 invisible opacity-0 translate-x-[50px] shadow-2xl pointer-events-auto rounded-sm"
       >
-        <div className="text-[10px] text-[#d4af37] uppercase tracking-widest mb-2">{selectedCoffee.variety}</div>
-        <h2 className="font-serif text-2xl mb-4 text-white">{selectedCoffee.name}</h2>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {selectedCoffee.notes.map((note, i) => (
-            <span key={i} className="bg-white/10 px-2 py-1 rounded text-[10px] text-gray-300">{note}</span>
-          ))}
+        <div className="text-[#d4af37] text-[10px] uppercase tracking-[0.2em] mb-2">{selectedCoffee.subName}</div>
+        <h2 className="font-serif text-3xl mb-6 leading-none">{selectedCoffee.name}</h2>
+        
+        <div className="text-[10px] text-gray-500 uppercase mb-2 tracking-wider">Tasting Notes</div>
+        <div className="flex flex-wrap gap-2 mb-8">
+            {selectedCoffee.tags.map((tag: string) => (
+                <span key={tag} className="bg-white/10 px-3 py-1 rounded text-[10px] text-gray-300">
+                    {tag}
+                </span>
+            ))}
         </div>
-        <p className="text-xs text-gray-400 leading-relaxed mb-6">{selectedCoffee.desc}</p>
+        
+        <p className="text-xs text-gray-400 leading-relaxed mb-8 break-keep">
+            {/* 언어에 따른 설명 표시 */}
+            {language === 'KO' ? selectedCoffee.description : selectedCoffee.descriptionJP}
+        </p>
+        
         <button 
-            onClick={(e) => { e.stopPropagation(); returnToLine(); }}
-            className="w-full py-2 border border-white/20 text-[10px] uppercase hover:bg-white hover:text-black transition-colors"
+            onClick={(e) => { e.stopPropagation(); handleBack(); }}
+            className="w-full px-6 py-3 border border-white/30 text-[10px] uppercase tracking-widest hover:border-[#d4af37] hover:text-[#d4af37] transition-colors bg-transparent cursor-pointer"
         >
-          Close Detail
+            {language === 'KO' ? 'Back to Menu' : 'メニューに戻る'}
         </button>
       </div>
     </div>

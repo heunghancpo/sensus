@@ -29,9 +29,9 @@ export default function Footer() {
           <h3 className="text-white text-xs uppercase tracking-widest mb-6">Information</h3>
           <ul className="space-y-4 text-xs">
             <li>상호명: Sensus</li>
-            <li>대표: 김개발</li>
+            <li>대표: 송현서</li>
             <li>사업자등록번호: 123-45-67890</li>
-            <li>주소: 서울특별시 영등포구 여의대로 108, 파크원 22F</li>
+            <li>주소: 서울특별시 영등포구 여의대로 108, 파크원 1F</li>
           </ul>
         </div>
       </div>

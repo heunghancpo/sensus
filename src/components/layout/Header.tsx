@@ -3,17 +3,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
+import { useStore } from '@/store/useStore'; // Store import
 
 const links = [
   { href: '/menu', label: 'Menu' },
   { href: '/curation', label: 'AI Curation' },
   { href: '/tech', label: 'Technology' },
-  { href: '/business', label: 'Business' }, // Store -> Business 변경
+  { href: '/business', label: 'Business' },
 ];
 
 export default function Header() {
   const pathname = usePathname();
-  const isHome = pathname === '/';
+  const { language, setLanguage } = useStore(); // 언어 상태 사용
 
   return (
     <motion.header
@@ -26,7 +27,7 @@ export default function Header() {
           Sensus
         </Link>
 
-        <nav className="hidden md:flex gap-10">
+        <nav className="hidden md:flex gap-10 items-center">
           {links.map((link) => (
             <Link
               key={link.href}
@@ -39,15 +40,26 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+
+          {/* 언어 전환 스위치 (Language Toggle) */}
+          <div className="flex items-center gap-2 ml-4 border-l border-white/20 pl-6">
+            <button 
+              onClick={() => setLanguage('KO')}
+              className={clsx("text-xs font-bold transition-colors", language === 'KO' ? "text-white" : "text-gray-600 hover:text-gray-400")}
+            >
+              KO
+            </button>
+            <span className="text-gray-700 text-[10px]">/</span>
+            <button 
+              onClick={() => setLanguage('JP')}
+              className={clsx("text-xs font-bold transition-colors", language === 'JP' ? "text-white" : "text-gray-600 hover:text-gray-400")}
+            >
+              JP
+            </button>
+          </div>
         </nav>
         
-        {/* IR용 문의 버튼 */}
-        <Link 
-        href="/partner" 
-        className="hidden md:block px-6 py-2 border border-white/20 text-xs text-white uppercase tracking-wider hover:bg-white hover:text-black transition-all"
-        >
-        Partner Inquiry
-        </Link>
+        {/* 모바일 대응 등 필요시 추가 */}
       </div>
     </motion.header>
   );

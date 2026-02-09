@@ -9,8 +9,8 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfa
 const roboto = Roboto({ subsets: ["latin"], weight: ["300", "400", "700"], variable: "--font-roboto" });
 
 export const metadata: Metadata = {
-  title: "H Cafe | Tech meets Taste",
-  description: "당신의 하루를 읽는 AI, 세계를 담은 커피",
+  title: "Sensus | Tech meets Taste",
+  description: "당신의 하루를 읽는 감각, 세계를 담은 커피",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

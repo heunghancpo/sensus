@@ -8,7 +8,7 @@ const TEXT = {
     header: {
       tag: "Scalable Business Model",
       title: <>From a Cafe<br/>to a <span className="text-gray-600 italic">Coffee System.</span></>,
-      desc: "Sensus는 단순한 F&B 브랜드가 아닙니다. 검증된 맛의 기준을 하드웨어와 소프트웨어로 확장하여 커피 산업의 새로운 표준을 제안합니다."
+      desc: "Sensus는 단순한 F&B 브랜드가 아닙니다. \n검증된 맛의 기준을 하드웨어와 소프트웨어로 확장하여 \n커피 산업의 새로운 표준을 제안합니다."
     },
     solutions: [
       {

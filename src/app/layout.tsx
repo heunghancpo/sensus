@@ -9,7 +9,7 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfa
 const roboto = Roboto({ subsets: ["latin"], weight: ["300", "400", "700"], variable: "--font-roboto" });
 
 export const metadata: Metadata = {
-  title: "Sensus | Tech meets Taste",
+  title: "Sensus | Your Sense to Coffee by Tech",
   description: "당신의 하루를 읽는 감각, 세계를 담은 커피",
 };
 

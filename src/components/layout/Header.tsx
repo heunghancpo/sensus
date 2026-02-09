@@ -12,6 +12,7 @@ const links = [
   { href: '/curation', label: 'AI Curation' },
   { href: '/tech', label: 'Technology' },
   { href: '/business', label: 'Business' },
+  { href: '/partner', label: 'Partnership'}
 ];
 
 export default function Header() {

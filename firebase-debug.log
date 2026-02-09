@@ -1,0 +1,22 @@
+[debug] [2026-02-09T03:57:27.191Z] ----------------------------------------------------------------------
+[debug] [2026-02-09T03:57:27.193Z] Command:       C:\nvm4w\nodejs\node.exe C:\nvm4w\nodejs\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-02-09T03:57:27.193Z] CLI Version:   15.5.1
+[debug] [2026-02-09T03:57:27.194Z] Platform:      win32
+[debug] [2026-02-09T03:57:27.194Z] Node Version:  v20.20.0
+[debug] [2026-02-09T03:57:27.194Z] Time:          Mon Feb 09 2026 12:57:27 GMT+0900 (대한민국 표준시)
+[debug] [2026-02-09T03:57:27.194Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-09T03:57:31.808Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-09T03:57:31.809Z] > authorizing via signed-in user (cpo@koreaheung.com)
+[debug] [2026-02-09T03:57:31.809Z] [iam] checking project h-cafe for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-02-09T03:57:31.810Z] Checked if tokens are valid: true, expires at: 1770612985394
+[debug] [2026-02-09T03:57:31.810Z] Checked if tokens are valid: true, expires at: 1770612985394
+[debug] [2026-02-09T03:57:31.810Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/h-cafe:testIamPermissions [none]
+[debug] [2026-02-09T03:57:31.811Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/h-cafe:testIamPermissions  x-goog-user-project=h-cafe
+[debug] [2026-02-09T03:57:31.811Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/h-cafe:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-02-09T03:57:32.061Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/h-cafe:testIamPermissions 200
+[debug] [2026-02-09T03:57:32.062Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/h-cafe:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-02-09T03:57:32.062Z] Checked if tokens are valid: true, expires at: 1770612985394
+[debug] [2026-02-09T03:57:32.062Z] Checked if tokens are valid: true, expires at: 1770612985394
+[debug] [2026-02-09T03:57:32.062Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/h-cafe [none]
+[debug] [2026-02-09T03:57:32.443Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/h-cafe 200

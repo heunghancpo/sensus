@@ -4,57 +4,83 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sun, CloudRain, Cloud, Wind, Music, Droplets, Wind as AirIcon, Disc } from 'lucide-react';
 import { clsx } from 'clsx';
 import { coffeeDB } from '@/data';
+import { useStore } from '@/store/useStore';
 
 // --- 데이터 정의 ---
 
 // 1. Mood에 따른 공감각적 매핑 (Music, Scent, Coffee)
-// * 커피 매칭 로직을 더 세분화된 원두로 연결
-const MOOD_MAP: Record<string, { music: string; artist: string; scent: string; coffeeId: string }> = {
+const MOOD_MAP: Record<string, { music: string; artist: string; scent: string; scentJP: string; coffeeId: string }> = {
   'Creative': { 
     music: 'Midnight Jazz Club', 
     artist: 'Sensus Original Playlist', 
     scent: 'Fresh Eucalyptus & Lemon',
-    coffeeId: 'ethiopia_yirgacheffe' // 화사함, 영감
+    scentJP: 'フレッシュユーカリ & レモン',
+    coffeeId: 'ethiopia_yirgacheffe' 
   },
   'Melancholy': { 
     music: 'Rainy Day Piano', 
     artist: 'Acoustic Labs', 
     scent: 'Petrichor (Wet Earth)',
-    coffeeId: 'guatemala_antigua' // 스모키, 위로
+    scentJP: 'ペトリコール (雨上がりの土の匂い)',
+    coffeeId: 'guatemala_antigua' 
   },
   'Focused': { 
     music: 'Deep Focus Alpha Waves', 
     artist: 'Brain Flow', 
     scent: 'Rosemary & Cedarwood',
-    coffeeId: 'indonesia_mandheling' // 묵직함, 집중
+    scentJP: 'ローズマリー & シダーウッド',
+    coffeeId: 'indonesia_mandheling' 
   },
   'Energetic': { 
     music: 'Upbeat Funk & Soul', 
     artist: 'Groove Collective', 
     scent: 'Orange Blossom & Ginger',
-    coffeeId: 'costa_rica_tarrazu' // 깔끔함, 활기
+    scentJP: 'オレンジブロッサム & ジンジャー',
+    coffeeId: 'costa_rica_tarrazu' 
   },
   'Relaxed': { 
     music: 'Forest Sounds Vol.2', 
     artist: 'Nature Ambience', 
     scent: 'Lavender & Sandalwood',
-    coffeeId: 'blue_mountain' // 부드러움, 휴식
+    scentJP: 'ラベンダー & サンダルウッド',
+    coffeeId: 'blue_mountain' 
   },
   'Romantic': { 
     music: 'Late Night R&B', 
     artist: 'Soul Vibes', 
     scent: 'Rose & Vanilla Bean',
-    coffeeId: 'geisha' // 우아함, 설렘
+    scentJP: 'ローズ & バニラビーンズ',
+    coffeeId: 'geisha' 
   }
 };
 
-// 2. Color Palette (맛의 시각화 + 설명 추가)
+// 2. Color Palette
 const COLORS = [
-  { hex: '#FF6B6B', mood: 'Passion', flavor: 'Berry & Acidity', desc: '강렬한 에너지와 새로운 영감이 필요할 때' },
-  { hex: '#FFD93D', mood: 'Joy', flavor: 'Citrus & Sweet', desc: '일상의 즐거움과 톡 쏘는 활기를 찾고 싶을 때' },
-  { hex: '#6BCB77', mood: 'Refresh', flavor: 'Herb & Clean', desc: '복잡한 머릿속을 맑고 깨끗하게 비우고 싶을 때' },
-  { hex: '#4D96FF', mood: 'Calm', flavor: 'Smooth Body', desc: '지친 하루 끝, 차분한 위로와 휴식이 필요할 때' },
-  { hex: '#2C3E50', mood: 'Deep', flavor: 'Dark Chocolate', desc: '깊은 사색과 온전한 집중이 필요할 때' },
+  { 
+    hex: '#FF6B6B', mood: 'Passion', flavor: 'Berry & Acidity', 
+    desc: '강렬한 에너지와 새로운 영감이 필요할 때',
+    descJP: '強烈なエネルギーと新しいインスピレーションが必要な時'
+  },
+  { 
+    hex: '#FFD93D', mood: 'Joy', flavor: 'Citrus & Sweet', 
+    desc: '일상의 즐거움과 톡 쏘는 활기를 찾고 싶을 때',
+    descJP: '日常の楽しさと弾けるような活気を見つけたい時'
+  },
+  { 
+    hex: '#6BCB77', mood: 'Refresh', flavor: 'Herb & Clean', 
+    desc: '복잡한 머릿속을 맑고 깨끗하게 비우고 싶을 때',
+    descJP: '複雑な頭の中を澄んだ空気のように空っぽにしたい時'
+  },
+  { 
+    hex: '#4D96FF', mood: 'Calm', flavor: 'Smooth Body', 
+    desc: '지친 하루 끝, 차분한 위로와 휴식이 필요할 때',
+    descJP: '疲れた一日の終わり、落ち着いた慰めと休息が必要な時'
+  },
+  { 
+    hex: '#2C3E50', mood: 'Deep', flavor: 'Dark Chocolate', 
+    desc: '깊은 사색과 온전한 집중이 필요할 때',
+    descJP: '深い思索と完全な集中が必要な時'
+  },
 ];
 
 const WEATHER_ICONS = {
@@ -62,6 +88,64 @@ const WEATHER_ICONS = {
   Rainy: CloudRain,
   Cloudy: Cloud,
   Windy: Wind,
+};
+
+// 3. 다국어 텍스트 리소스
+const TEXT = {
+  KO: {
+    step1: { step: "Step 01. Context", title: "How is the sky today?" },
+    step2: { step: "Step 02. Emotion", title: "Define your vibe." },
+    step3: { step: "Step 03. Synesthesia", title: "What color tastes like today?", desc: "당신의 감각을 색으로 표현해주세요. 그 색의 맛을 찾아드립니다." },
+    analyzing: {
+      title: "SENSUS AI AGENT v2.1",
+      audio: "Audio Mixing",
+      scent: "Scent Blending",
+      bean: "Bean Matching",
+      processing: "Processing",
+      ok: "OK",
+      ready: "ALL SYSTEMS READY."
+    },
+    result: {
+      header: "The Atelier Experience",
+      vibe: "Your Vibe",
+      todaysCup: "Today's Cup",
+      pairing: "Pairing Music",
+      aroma: "Aroma Note",
+      moodSuffix: "Mood",
+      recipe: "Brewing Tip",
+      recipeDetail: "Hand Drip Extraction",
+      orderBtn: "Order This Course",
+      restartBtn: "Restart",
+      footer: "Tech meets Taste · Sensus Atelier"
+    }
+  },
+  JP: {
+    step1: { step: "Step 01. Context", title: "How is the sky today?", desc: "今日の空模様はいかがですか？" }, // 영문 타이틀 유지하되 뉘앙스 전달
+    step2: { step: "Step 02. Emotion", title: "Define your vibe.", desc: "今の気分を教えてください。" },
+    step3: { step: "Step 03. Synesthesia", title: "What color tastes like today?", desc: "あなたの感覚を色で表現してください。その色の味を見つけます。" },
+    analyzing: {
+      title: "SENSUS AI AGENT v2.1",
+      audio: "Audio Mixing",
+      scent: "Scent Blending",
+      bean: "Bean Matching",
+      processing: "Processing",
+      ok: "OK",
+      ready: "ALL SYSTEMS READY."
+    },
+    result: {
+      header: "The Atelier Experience",
+      vibe: "Your Vibe",
+      todaysCup: "Today's Cup",
+      pairing: "Pairing Music",
+      aroma: "Aroma Note",
+      moodSuffix: "Mood",
+      recipe: "Brewing Tip",
+      recipeDetail: "Hand Drip Extraction",
+      orderBtn: "このコースを注文する",
+      restartBtn: "最初に戻る",
+      footer: "Tech meets Taste · Sensus Atelier"
+    }
+  }
 };
 
 type Step = 'WEATHER' | 'MOOD' | 'COLOR' | 'ANALYZING' | 'RESULT';
@@ -73,6 +157,9 @@ export default function CurationPage() {
     mood: 'Creative',
     color: COLORS[0],
   });
+
+  const { language } = useStore();
+  const t = TEXT[language];
 
   // 배경색 동적 전환
   const bgStyle = {
@@ -116,8 +203,8 @@ export default function CurationPage() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
               className="text-center"
             >
-              <h2 className="text-xs text-[#d4af37] tracking-widest uppercase mb-4 font-mono">Step 01. Context</h2>
-              <h1 className="text-4xl md:text-5xl font-serif text-white mb-12">How is the sky today?</h1>
+              <h2 className="text-xs text-[#d4af37] tracking-widest uppercase mb-4 font-mono">{t.step1.step}</h2>
+              <h1 className="text-4xl md:text-5xl font-serif text-white mb-12">{t.step1.title}</h1>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {Object.entries(WEATHER_ICONS).map(([label, Icon]) => (
                   <button
@@ -143,8 +230,8 @@ export default function CurationPage() {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
               className="text-center"
             >
-              <h2 className="text-xs text-[#d4af37] tracking-widest uppercase mb-4 font-mono">Step 02. Emotion</h2>
-              <h1 className="text-4xl md:text-5xl font-serif text-white mb-12">Define your vibe.</h1>
+              <h2 className="text-xs text-[#d4af37] tracking-widest uppercase mb-4 font-mono">{t.step2.step}</h2>
+              <h1 className="text-4xl md:text-5xl font-serif text-white mb-12">{t.step2.title}</h1>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
                 {Object.keys(MOOD_MAP).map((m) => (
                   <button
@@ -162,16 +249,16 @@ export default function CurationPage() {
             </motion.div>
           )}
 
-          {/* STEP 3: Color (Updated with Description) */}
+          {/* STEP 3: Color */}
           {step === 'COLOR' && (
             <motion.div 
               key="color"
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
               className="text-center"
             >
-              <h2 className="text-xs text-[#d4af37] tracking-widest uppercase mb-4 font-mono">Step 03. Synesthesia</h2>
-              <h1 className="text-4xl md:text-5xl font-serif text-white mb-8">What color tastes like today?</h1>
-              <p className="text-gray-500 mb-12 text-sm font-light">당신의 감각을 색으로 표현해주세요. 그 색의 맛을 찾아드립니다.</p>
+              <h2 className="text-xs text-[#d4af37] tracking-widest uppercase mb-4 font-mono">{t.step3.step}</h2>
+              <h1 className="text-4xl md:text-5xl font-serif text-white mb-8">{t.step3.title}</h1>
+              <p className="text-gray-500 mb-12 text-sm font-light">{t.step3.desc}</p>
               
               <div className="flex flex-wrap justify-center gap-6 mb-10">
                 {COLORS.map((c) => (
@@ -194,7 +281,7 @@ export default function CurationPage() {
                   ● {selection.color.mood}
                 </div>
                 <div className="text-xs text-gray-500">
-                  {selection.color.desc}
+                  {language === 'KO' ? selection.color.desc : selection.color.descJP}
                 </div>
               </div>
             </motion.div>
@@ -208,23 +295,23 @@ export default function CurationPage() {
               className="font-mono text-xs text-[#d4af37] text-left max-w-sm mx-auto bg-black/50 p-8 border border-[#d4af37]/30 rounded-sm shadow-[0_0_30px_rgba(212,175,55,0.1)]"
             >
               <div className="space-y-3">
-                <p className="border-b border-[#d4af37]/20 pb-2 mb-4 text-[#d4af37] font-bold">SENSUS AI AGENT v2.1</p>
+                <p className="border-b border-[#d4af37]/20 pb-2 mb-4 text-[#d4af37] font-bold">{t.analyzing.title}</p>
                 <p>{`> Input.Weather .... ${selection.weather}`}</p>
                 <p>{`> Input.Mood ....... ${selection.mood}`}</p>
                 <p>{`> Input.Color ...... ${selection.color.hex}`}</p>
-                <p className="mt-4 text-white/70 animate-pulse">{`> Audio Mixing...... Processing`}</p>
+                <p className="mt-4 text-white/70 animate-pulse">{`> ${t.analyzing.audio}...... ${t.analyzing.processing}`}</p>
                 <motion.p 
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
                   className="text-white/70"
-                >{`> Scent Blending.... OK`}</motion.p>
+                >{`> ${t.analyzing.scent}.... ${t.analyzing.ok}`}</motion.p>
                 <motion.p 
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}
                   className="text-white/70"
-                >{`> Bean Matching..... OK`}</motion.p>
+                >{`> ${t.analyzing.bean}..... ${t.analyzing.ok}`}</motion.p>
                 <motion.p 
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.5 }}
                   className="text-[#d4af37] mt-4"
-                >{`> ALL SYSTEMS READY.`}</motion.p>
+                >{`> ${t.analyzing.ready}`}</motion.p>
               </div>
             </motion.div>
           )}
@@ -243,25 +330,25 @@ export default function CurationPage() {
                   <div className="w-8 h-8 border border-black rounded-full flex items-center justify-center font-serif italic">S</div>
                 </div>
                 <h2 className="font-serif text-2xl mb-1">CURATION #0251</h2>
-                <p className="font-mono text-[10px] uppercase text-gray-500 tracking-wider">The Atelier Experience</p>
+                <p className="font-mono text-[10px] uppercase text-gray-500 tracking-wider">{t.result.header}</p>
                 <div className="mt-2 text-[10px] font-mono text-gray-400">
                   {new Date().toLocaleDateString()} • {new Date().toLocaleTimeString()}
                 </div>
               </div>
 
               <div className="flex justify-between items-center mb-8 bg-black/5 p-3 rounded text-xs font-mono">
-                <span className="text-gray-500">Your Vibe</span>
+                <span className="text-gray-500">{t.result.vibe}</span>
                 <span className="font-bold">{selection.weather} &middot; {selection.mood} &middot; {selection.color.mood}</span>
               </div>
 
               {/* Coffee Card */}
               <div className="bg-black text-[#fffbf0] p-6 mb-6 text-center relative overflow-hidden group">
                 <div className="absolute inset-0 border border-[#d4af37] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <p className="text-[10px] uppercase tracking-[0.2em] mb-2 text-[#d4af37]">Today's Cup</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] mb-2 text-[#d4af37]">{t.result.todaysCup}</p>
                 <h3 className="text-2xl font-serif mb-2">{matchedCoffee.name}</h3>
                 <p className="text-[10px] text-gray-400 mb-4">{matchedCoffee.subName}</p>
                 <p className="text-xs text-gray-300 leading-relaxed font-light px-2 break-keep">
-                  {matchedCoffee.description}
+                  {language === 'KO' ? matchedCoffee.description : matchedCoffee.descriptionJP}
                 </p>
               </div>
 
@@ -272,7 +359,7 @@ export default function CurationPage() {
                     <Disc className="w-5 h-5 text-gray-700 animate-[spin_4s_linear_infinite]" />
                   </div>
                   <div>
-                    <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-0.5">Pairing Music</span>
+                    <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-0.5">{t.result.pairing}</span>
                     <span className="block text-sm font-serif font-bold">{resultData.music}</span>
                     <span className="text-[10px] text-gray-500">{resultData.artist}</span>
                   </div>
@@ -283,9 +370,10 @@ export default function CurationPage() {
                     <AirIcon className="w-5 h-5 text-gray-700" />
                   </div>
                   <div>
-                    <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-0.5">Aroma Note</span>
-                    <span className="block text-sm font-serif font-bold">{resultData.scent}</span>
-                    <span className="text-[10px] text-gray-500">For {selection.mood} Mood</span>
+                    <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-0.5">{t.result.aroma}</span>
+                    {/* 향 정보 다국어 처리 */}
+                    <span className="block text-sm font-serif font-bold">{language === 'KO' ? resultData.scent : resultData.scentJP}</span>
+                    <span className="text-[10px] text-gray-500">For {selection.mood} {t.result.moodSuffix}</span>
                   </div>
                 </div>
 
@@ -294,27 +382,27 @@ export default function CurationPage() {
                     <Droplets className="w-5 h-5 text-gray-700" />
                   </div>
                   <div>
-                    <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-0.5">Brewing Tip</span>
+                    <span className="block text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-0.5">{t.result.recipe}</span>
                     <span className="block text-sm font-serif font-bold">93°C Water / Ratio 1:16</span>
-                    <span className="text-[10px] text-gray-500">Hand Drip Extraction</span>
+                    <span className="text-[10px] text-gray-500">{t.result.recipeDetail}</span>
                   </div>
                 </div>
               </div>
 
               <div className="mt-6 flex flex-col gap-2">
                 <button className="w-full py-3 bg-black text-[#d4af37] text-xs font-bold uppercase tracking-widest hover:bg-[#222] transition-colors">
-                  Order This Course
+                  {t.result.orderBtn}
                 </button>
                 <button 
                   onClick={() => window.location.reload()}
                   className="w-full py-3 border border-black text-black text-xs font-bold uppercase tracking-widest hover:bg-black/5 transition-colors"
                 >
-                  Restart
+                  {t.result.restartBtn}
                 </button>
               </div>
 
               <div className="mt-6 text-center">
-                <p className="font-mono text-[9px] text-gray-400 uppercase">Tech meets Taste &middot; Sensus Atelier</p>
+                <p className="font-mono text-[9px] text-gray-400 uppercase">{t.result.footer}</p>
               </div>
             </motion.div>
           )}

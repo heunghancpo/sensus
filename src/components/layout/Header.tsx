@@ -8,6 +8,7 @@ import { Menu, X } from 'lucide-react'; // 아이콘 추가
 import { useStore } from '@/store/useStore';
 
 const links = [
+  { href: '/space', label: 'Space' },
   { href: '/menu', label: 'Menu' },
   { href: '/curation', label: 'AI Curation' },
   { href: '/tech', label: 'Technology' },
